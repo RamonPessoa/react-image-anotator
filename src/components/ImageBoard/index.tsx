@@ -10,30 +10,48 @@ export function ImageBoard({ image: incomingImage }: ImageBoardProps) {
   const [board, setBoard] = useState<Board>(new Board(incomingImage, []));
   const [image, setImage] = useState<string>();
   const [sizes, setSizes] = useState({ width: 0, height: 0 });
+  const [drawStartPosition, setDrawStartPosition] = useState<{
+    x: number;
+    y: number;
+  }>({
+    x: 0,
+    y: 0,
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<SVGElement>) => {
+    if (board.isDrawInProgress && board.currentDrawing) {
+      const { x, y } = e.currentTarget.getBoundingClientRect();
+      const currentX = e.clientX - x;
+      const currentY = e.clientY - y;
+      const newWidth = currentX - drawStartPosition.x;
+      const newHeight = currentY - drawStartPosition.y;
+    
+      if (newWidth < 0) {
+        board.currentDrawing?.setTopLeftX(currentX);
+      }
+
+      if (newHeight < 0) {
+        board.currentDrawing?.setTopLeftY(currentY);
+      }
+      
+      board.currentDrawing?.setWidth(Math.abs(newWidth));
+      board.currentDrawing?.setHeight(Math.abs(newHeight));
+
+
+      const finalBoard = new Board(
+        board.getImage(),
+        board.getPolygons(),
+        board.currentDrawing
+      )
+      setBoard(finalBoard);
+    }
+  };
 
   function handleClick(e: React.MouseEvent<SVGElement>) {
     const { x, y } = e.currentTarget.getBoundingClientRect();
-    const currentX = e.clientX - x;
-    const currentY = e.clientY - y;
 
     if (board.isDrawInProgress) {
-      const topLeftX = board.currentDrawing?.getTopLeftX();
-      const topLeftY = board.currentDrawing?.getTopLeftY();
-      let width = currentX - topLeftX!;
-      let height = currentY - topLeftY!;
-      if (width < 0) {
-        board.currentDrawing?.setTopLeftX(currentX);
-        width = Math.abs(width);
-      }
-      if (height < 0) {
-        board.currentDrawing?.setTopLeftY(currentY);
-        height = Math.abs(height);
-      }
-
-      const newBoard = board.stopDrawing({
-        width,
-        height,
-      });
+      const newBoard = board.stopDrawing();
 
       if (newBoard) setBoard(newBoard);
       return;
@@ -45,7 +63,8 @@ export function ImageBoard({ image: incomingImage }: ImageBoardProps) {
       startX: topLeftX,
       startY: topLeftY,
     });
-
+    
+    setDrawStartPosition({ x: topLeftX, y: topLeftY });
     setBoard(newBoard);
   }
 
@@ -59,7 +78,7 @@ export function ImageBoard({ image: incomingImage }: ImageBoardProps) {
   }, [board]);
 
   return (
-    <svg onClick={handleClick}>
+    <svg onClick={handleClick} onMouseMove={handleMouseMove}>
       {image ? (
         <image href={image} width={sizes.width} height={sizes.height} />
       ) : null}

@@ -6,7 +6,12 @@ export class Board {
     private readonly image: Image,
     private readonly polygons: Rectangle[],
     private currentDraw: Rectangle | null = null
-  ) {}
+  ) {
+    if (this.currentDraw) {
+      if (!this.polygons.find((polygon) => polygon.id === this.currentDraw!.id))
+        this.polygons.push(this.currentDraw);
+    }
+  }
 
   public getPolygons(): Rectangle[] {
     return this.polygons;
@@ -31,19 +36,11 @@ export class Board {
     return new Board(this.image, this.polygons, polygon);
   }
 
-  public stopDrawing({
-    width,
-    height,
-  }: {
-    width: number;
-    height: number;
-  }): Board | void {
+  public stopDrawing(): Board | void {
     if (this.currentDraw === null) {
       return;
     }
-    this.currentDraw.setWidth(width);
-    this.currentDraw.setHeight(height);
-    return new Board(this.image, [...this.polygons, this.currentDraw]);
+    return new Board(this.image, this.polygons);
   }
 
   public getImage(): Image {
